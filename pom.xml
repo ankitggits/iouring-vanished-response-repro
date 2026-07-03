@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.iouringrepro</groupId>
+    <artifactId>iouring-vanished-response-repro</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+
+    <!--
+      Minimal, self-contained reproducer for: reactor-netty over the netty io_uring
+      transport intermittently loses HTTP/1.1 responses on reused (keep-alive) pooled
+      connections; the same code over epoll never does.
+
+      No external network, no Spring, no Testcontainers: the load target is an embedded
+      JDK HttpServer that streams a chunked response, so the whole thing runs offline
+      with a single command on Linux. See README.md.
+    -->
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <netty.version>4.2.15.Final</netty.version>
+        <reactor-netty.version>1.3.6</reactor-netty.version>
+        <exec-plugin.version>3.5.0</exec-plugin.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Pin the exact netty version under test, overriding reactor-netty's transitive one. -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-http</artifactId>
+            <version>${reactor-netty.version}</version>
+        </dependency>
+
+        <!-- netty-all bundles every native classifier (io_uring + epoll, x86_64 + aarch_64). -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-plugin.version}</version>
+                <configuration>
+                    <mainClass>io.github.iouringrepro.VanishedResponseRepro</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
